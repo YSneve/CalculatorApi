@@ -1,50 +1,82 @@
 ﻿using System.Text.RegularExpressions;
-using Calculator.Controller;
-using Microsoft.Extensions.Options;
+
 
 namespace Calculator.CalculatorLogic
 {
     // Класс выполняющий вычисления из строки
     public class CalculatorClass
     {
-        // Хранение уже реализованных математических операторов
-        private static readonly Dictionary<char, IOperators> Operators = new()
-        {
-            {'+', new Addition()},
-            {'*', new Multiplication()}
-        };
+        private static readonly Regex BracketRegex = new("-\\([0-9+\\-*^]*\\)|\\([0-9+\\-*^]*\\)");
+        private static readonly Regex SplitRegex = new("([*+\\-()^])");
 
-        private readonly string _allowedOperators;
-        
-        public CalculatorClass(string operators)
-        {
-            _allowedOperators = operators;
-        }
+        // Порядок выполнения и реализация математических выражений
+        private static readonly Dictionary<string, Func<int, int, int>> Operators = new()
+    {
+        {"^", (a, b) => (int)Math.Pow(a, b)}, // Выскоий приоритет
+        {"/", (a, b) => a / b}, 
+        {"*", (a, b) => a * b},
+        {"+", (a, b) => a + b},
+        {"-", (a, b) => a - b} // Низкий приоритет
 
+    };
         public int Compute(string expression)
         {
-            // Разбиение выражения на список строк для упрощенного доступа и работы
-            var splitExpression = new Regex($"([{_allowedOperators}])").Split(expression).ToList();
-
-            // Перебор всех доступных операторов и вычисление выражения
-            foreach (var symbol in _allowedOperators)
+            while (BracketRegex.IsMatch(expression))
             {
-                while (splitExpression.FindIndex(x => x.Equals(symbol.ToString())) != -1)
+                var match = BracketRegex.Match(expression).Value;
+
+                var computeResult = ComputeStringList(SplitRegex          // Вычисляем список токенов
+                        .Split(match[0] == '-' ? match[1..] : match)         // Делим выражение на array токенов, убираем минус перед скобками, если есть
+                        .ToList()                                            // Конвертация в List<string> 
+                        .FindAll(e =>                                 // Удаление скобок и пробелов
+                            e != "("
+                            && e != ")"
+                            && e != " "
+                            && e != ""));
+
+                computeResult *= match[0] == '-' ? -1 : 1; // Если перед скобками был минус, то результат в скобках берём отрицательным
+
+                expression = expression.Replace(match, computeResult.ToString()); // Заменяем выражение со скобками на результат в скобках
+
+            }
+
+            // После решения всех скобок, решаем полученное выражение
+            var result = ComputeStringList(SplitRegex.Split(expression).ToList().FindAll(e => e != "" && e != " "));
+
+            return result;
+        }
+
+        private int ComputeStringList(List<string> exprList)
+        {
+            if (exprList.Count == 2)
+                return int.Parse(exprList[0] + exprList[1]);
+
+            foreach (var _operator in Operators.Keys)
+            {
+
+                while (exprList.FindIndex(x => x == _operator) != -1)
                 {
-                    var exprPosition = splitExpression.FindIndex(x => x.Equals(symbol.ToString()));
+                    var operatorPos = exprList.FindIndex(x => x == _operator);
 
-                    int firstValue = int.Parse(splitExpression[exprPosition - 1]),
-                        secondValue = int.Parse(splitExpression[exprPosition + 1]);
+                    if (operatorPos > 1 && exprList[operatorPos - 2] == "-") // Замена двух токенов, числа и минуса, на один токен отрицательного числа
+                    {
+                        exprList[operatorPos - 1] = "-" + exprList[operatorPos - 1];
+                        exprList.RemoveAt(operatorPos - 2);
+                        operatorPos--;
+                    }
 
-                    var result = Operators[symbol].GetResult(firstValue, secondValue);
+                    int firstValue = int.Parse(exprList[operatorPos - 1]),
+                        secondValue = int.Parse(exprList[operatorPos + 1]);
 
-                    // Замена вычесленных чисел и оператора на их результат
-                    splitExpression.RemoveRange(exprPosition - 1, 3);
+                    var result = Operators[_operator](firstValue, secondValue);
 
-                    splitExpression.Insert(exprPosition - 1, result.ToString());
+                    exprList.RemoveRange(operatorPos - 1, 3);
+
+                    exprList.Insert(operatorPos - 1, result.ToString());
                 }
             }
-            return int.Parse(splitExpression[0]);
+
+            return int.Parse(exprList[0]);
         }
     }
 }

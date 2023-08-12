@@ -10,11 +10,14 @@ builder.Services.AddAuthorization();
 builder.Services.AddSwaggerGen();
 builder.Services.AddControllers();
 
+
 builder.Services.Configure<RateLimiterOptions>(options =>
     options.Limit = builder.Configuration.GetValue<int>("Settings:RateLimit"));
 
 builder.Services.Configure<CalculatorOptions>(options =>
     options.AllowedOperators = builder.Configuration.GetValue<string>("Settings:AllowedSymbols"));
+
+
 
 
 
@@ -31,7 +34,6 @@ if (app.Environment.IsDevelopment())
 }
 
 app.UseRateLimiter();
-app.UseSymbolsCheck();
 app.MapControllers();
 app.UseHttpsRedirection();
 app.UseAuthorization();

@@ -1,8 +1,5 @@
-﻿using System.Data;
-using System.Text.RegularExpressions;
-using Calculator.CalculatorLogic;
+﻿using Calculator.CalculatorLogic;
 using Microsoft.AspNetCore.Mvc;
-using Microsoft.Extensions.Options;
 
 namespace Calculator.Controller
 {
@@ -16,20 +13,30 @@ namespace Calculator.Controller
     public class CalculatorController : ControllerBase
     {
         private readonly CalculatorClass _calculator;
-        public CalculatorController(IOptions<CalculatorOptions> options)
+
+        public CalculatorController()
         {
-            _calculator = new CalculatorClass(options.Value.AllowedOperators);
+            _calculator = new CalculatorClass();
         }
 
         [HttpGet]
         public async Task<IActionResult> ComputeExpression(string expression)
         {
-            var expressionResult = _calculator.Compute(expression);
+            int expressionResult;
 
+            try
+            {
+                expressionResult = _calculator.Compute(expression);
+            }
+            catch
+            {
+                return BadRequest();
+            }
             return Ok(new
             {
                 resultOfExpression = expressionResult
             });
+
         }
     }
 }

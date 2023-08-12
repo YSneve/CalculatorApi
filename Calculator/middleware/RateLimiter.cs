@@ -3,6 +3,7 @@ using Microsoft.Extensions.Options;
 
 namespace Calculator.middleware
 {
+
     public class RateLimiterOptions
     {
         public int Limit { get; set; }
