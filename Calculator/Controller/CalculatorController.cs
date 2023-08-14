@@ -12,11 +12,11 @@ namespace Calculator.Controller
     [Route("api/[controller]")]
     public class CalculatorController : ControllerBase
     {
-        private readonly CalculatorClass _calculator;
+        private readonly CalculatorLogic.Calculator _calculator;
 
         public CalculatorController()
         {
-            _calculator = new CalculatorClass();
+            _calculator = new CalculatorLogic.Calculator();
         }
 
         [HttpGet]
